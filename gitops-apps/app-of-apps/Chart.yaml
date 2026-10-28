@@ -1,0 +1,5 @@
+apiVersion: v2
+name: app-of-apps
+description: Root GitOps App-of-Apps coordinating deployments across clusters
+type: application
+version: 1.0.0

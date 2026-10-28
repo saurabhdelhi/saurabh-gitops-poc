@@ -1,0 +1,9 @@
+apiVersion: v2
+name: sample-app
+description: Production-grade microservice Helm chart for GitOps demonstrations
+type: application
+version: 1.0.0
+appVersion: "1.25.0"
+maintainers:
+  - name: Saurabh Sharma
+    email: saurabh@learning.dev

@@ -1,0 +1,49 @@
+---
+# Applied to Cluster 2: Target Workload Cluster
+# Creates dedicated ServiceAccount, ClusterRole, and Long-lived Token Secret for ArgoCD
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-manager
+  namespace: argocd
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argocd-manager-role
+rules:
+  # In production, you can restrict this to specific namespaces or resources.
+  # For full GitOps management across the cluster:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  - nonResourceURLs: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argocd-manager-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argocd-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: argocd-manager
+    namespace: argocd
+---
+# In K8s 1.24+, token secrets are not auto-generated; we create a static Secret for the ServiceAccount:
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-manager-token
+  namespace: argocd
+  annotations:
+    kubernetes.io/service-account.name: argocd-manager
+type: kubernetes.io/service-account-token

@@ -1,0 +1,90 @@
+## Google Workspace SAML 2.0 SSO Values for Argo CD
+## Merge these values with `values-production.yaml` during helm install / upgrade:
+## helm upgrade --install argocd argo-cd/argo-cd -n argocd -f values-production.yaml -f values-saml-google.yaml
+
+dex:
+  enabled: true
+
+configs:
+  # --- argocd-cm: Core Configuration & Dex SAML Connector ---
+  cm:
+    # Public URL of ArgoCD (must match the ACS URL configured in Google Admin Console)
+    url: "https://argocd.yourcompany.com"
+
+    # Dex Configuration for Google SAML 2.0
+    dex.config: |
+      connectors:
+      - type: saml
+        id: google
+        name: Google Workspace
+        config:
+          # 1. SSO URL from Google Admin Console (under SAML app details)
+          ssoURL: https://accounts.google.com/o/saml2/idp?idpid=REPLACE_WITH_YOUR_IDPID
+          
+          # 2. Issuer URI from Google Admin Console
+          ssoIssuer: https://accounts.google.com/o/saml2?idpid=REPLACE_WITH_YOUR_IDPID
+          
+          # 3. Base64-encoded X.509 Certificate downloaded from Google Admin Console
+          # Run: cat GoogleIDPCertificate.pem | base64 | tr -d '\n'
+          caData: "REPLACE_WITH_BASE64_ENCODED_GOOGLE_IDP_CERTIFICATE"
+          
+          # 4. Redirect / ACS URL (Must match ACS URL in Google Admin Console)
+          redirectURI: https://argocd.yourcompany.com/api/dex/callback
+          
+          # 5. Entity ID (Must match Entity ID in Google Admin Console)
+          entityIssuer: https://argocd.yourcompany.com/api/dex/callback
+          
+          # 6. Attribute Mapping (Mapped from Google SAML Attributes to Dex Claims)
+          usernameAttr: email
+          emailAttr: email
+          groupsAttr: groups
+          
+          # 7. Allowed Domains (Optional: restrict to your corporate domain)
+          # allowedGroups:
+          #   - devops@yourcompany.com
+          #   - developers@yourcompany.com
+
+  # --- argocd-rbac-cm: Role-Based Access Control mapped to Google Groups ---
+  rbac:
+    # Default role assigned to authenticated users who don't match specific group rules
+    # 'role:readonly' allows reading apps; '' (empty) denies any access until explicitly granted
+    policy.default: role:readonly
+
+    # Instructs ArgoCD to check both Google groups and email from SAML assertions
+    scopes: '[groups, email]'
+
+    # RBAC Policies and Group Bindings
+    # Format:
+    #   p, <role>, <resource>, <action>, <project/app>, <permission>
+    #   g, <google_group_or_email>, <role>
+    policy.csv: |
+      # -------------------------------------------------------------
+      # 1. Custom Role Definitions
+      # -------------------------------------------------------------
+      # Developer Role: Full sync and view permissions, but cannot delete or modify cluster/repos
+      p, role:developer, applications, get, */*, allow
+      p, role:developer, applications, sync, */*, allow
+      p, role:developer, applications, action/*, */*, allow
+      p, role:developer, logs, get, */*, allow
+      p, role:developer, exec, create, */*, allow
+
+      # Read-Only Auditor Role
+      p, role:auditor, applications, get, */*, allow
+      p, role:auditor, logs, get, */*, allow
+      p, role:auditor, clusters, get, *, allow
+      p, role:auditor, repositories, get, *, allow
+
+      # -------------------------------------------------------------
+      # 2. Group Role Bindings (Mapping Google Workspace Groups)
+      # -------------------------------------------------------------
+      # Senior DevOps / Platform Engineers -> Full ArgoCD Administrator
+      g, devops-team@yourcompany.com, role:admin
+
+      # Software Engineers / Backend / Frontend -> Developer Role
+      g, engineering-all@yourcompany.com, role:developer
+
+      # Security / Compliance Auditors -> Read-only Auditor
+      g, security-auditors@yourcompany.com, role:auditor
+
+      # Break-Glass Individual Administrator fallback (by email)
+      g, saurabh.sharma@yourcompany.com, role:admin

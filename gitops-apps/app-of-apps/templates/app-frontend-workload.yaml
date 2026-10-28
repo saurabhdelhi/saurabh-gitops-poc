@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: frontend-service-workload
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: {{ .Values.spec.repoURL | quote }}
+    targetRevision: {{ .Values.spec.targetRevision | quote }}
+    path: gitops-apps/charts/sample-app
+    helm:
+      values: |
+        replicaCount: 3
+        service:
+          port: 80
+        env:
+          SERVICE_NAME: "frontend-portal"
+          CLUSTER: "workload-cluster"
+  destination:
+    # Target: Remote Target Workload Cluster!
+    server: {{ .Values.clusters.workload.server | quote }}
+    namespace: production
+  syncPolicy:
+    {{- toYaml .Values.syncPolicy | nindent 4 }}

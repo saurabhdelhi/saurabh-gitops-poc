@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backend-service-mgmt
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: {{ .Values.spec.repoURL | quote }}
+    targetRevision: {{ .Values.spec.targetRevision | quote }}
+    path: gitops-apps/charts/sample-app
+    helm:
+      values: |
+        replicaCount: 2
+        service:
+          port: 8080
+        env:
+          SERVICE_NAME: "backend-core"
+          CLUSTER: "management-cluster"
+  destination:
+    # Target: Management / Local In-Cluster
+    server: {{ .Values.clusters.mgmt.server | quote }}
+    namespace: backend-services
+  syncPolicy:
+    {{- toYaml .Values.syncPolicy | nindent 4 }}
