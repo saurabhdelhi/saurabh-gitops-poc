@@ -32,7 +32,8 @@ Welcome to your hands-on production POC! This repository is designed to simulate
 └── docs/
     ├── 01_ARCHITECTURE.md                  # Topology diagram and concept breakdown
     ├── 02_MULTI_CLUSTER_SETUP.md           # How cross-cluster networking and secrets work
-    └── 03_GOOGLE_SAML_SSO_GUIDE.md         # Full Google Workspace Admin Console setup guide
+    ├── 03_GOOGLE_SAML_SSO_GUIDE.md         # Full Google Workspace Admin Console setup guide
+    └── 04_EXECUTION_HISTORY_AND_TROUBLESHOOTING.md # Full execution log, steps, & troubleshooting RCA
 ```
 
 ---
