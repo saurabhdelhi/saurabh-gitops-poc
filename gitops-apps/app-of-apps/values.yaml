@@ -9,9 +9,9 @@ clusters:
     server: "https://workload-cluster-control-plane:6443"
     name: "workload-cluster"
 
-# Source Git Repository (set to your GitHub repo in production or local file/test repo)
+# Source Git Repository
 spec:
-  repoURL: "https://github.com/your-org/gitops-manifests.git"
+  repoURL: "https://github.com/saurabhdelhi/saurabh-gitops-poc.git"
   targetRevision: HEAD
 
 # Automated sync policy controls

@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: "https://github.com/your-org/gitops-manifests.git"
+    repoURL: "https://github.com/saurabhdelhi/saurabh-gitops-poc.git"
     targetRevision: HEAD
     path: gitops-apps/app-of-apps
     helm:
