@@ -1,4 +1,4 @@
-.PHONY: help clusters-up clusters-down install-argocd register-cluster get-password port-forward-argocd deploy-apps status
+.PHONY: help clusters-up clusters-down install-argocd register-cluster get-password port-forward-argocd deploy-apps status lab-pause lab-resume
 
 SHELL := /usr/bin/env bash
 export PATH := /opt/homebrew/bin:/usr/local/bin:$(PATH)
@@ -14,6 +14,8 @@ help:
 	@echo "  make port-forward-argocd  - Port-forward ArgoCD server UI to localhost:8080"
 	@echo "  make deploy-apps          - Deploy App-of-Apps across both clusters"
 	@echo "  make status               - Check status of nodes, pods, and clusters"
+	@echo "  make lab-pause            - Pause clusters & free RAM/CPU (preserves state)"
+	@echo "  make lab-resume           - Resume clusters when you are back"
 	@echo "  make clusters-down        - Destroy both Kind clusters"
 	@echo "=========================================================================="
 
@@ -65,6 +67,20 @@ status:
 	@kubectl --context kind-workload-cluster get nodes
 	@echo "--- [Workload Cluster Namespaces] ---"
 	@kubectl --context kind-workload-cluster get ns
+
+lab-pause:
+	@echo ">> Pausing both Kind clusters (stopping Docker containers)..."
+	@docker stop $$(docker ps -q --filter "name=mgmt-cluster" --filter "name=workload-cluster")
+	@echo ">> Lab paused! CPU & RAM freed. All state and data are preserved."
+
+lab-resume:
+	@echo ">> Resuming both Kind clusters (starting Docker containers)..."
+	@docker start $$(docker ps -a -q --filter "name=mgmt-cluster" --filter "name=workload-cluster")
+	@echo ">> Waiting 15s for Kubernetes control planes to be ready..."
+	@sleep 15
+	@kubectl --context kind-mgmt-cluster get nodes
+	@kubectl --context kind-workload-cluster get nodes
+	@echo ">> Clusters are back online! Run 'make port-forward-argocd' to reopen the UI."
 
 clusters-down:
 	@echo ">> Deleting kind-mgmt-cluster..."
