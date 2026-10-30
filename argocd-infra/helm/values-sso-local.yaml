@@ -1,0 +1,80 @@
+## Local SSO & Group-Based RBAC Testing Values for Argo CD
+## Uses Dex's built-in User Database and Mock Connector on http://localhost:8085
+## No external Google Workspace Admin account required for this local test!
+
+dex:
+  enabled: true
+
+configs:
+  # --- argocd-cm: Core Configuration & Dex Local SSO Database ---
+  cm:
+    url: "http://localhost:8085"
+
+    dex.config: |
+      connectors:
+      - type: mockCallback
+        id: mock
+        name: "Mock Enterprise SSO"
+
+      enablePasswordDB: true
+      staticPasswords:
+        # User 1: Platform / DevOps Engineer (Admin Role)
+        - email: "admin@example.com"
+          hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+          username: "admin-sso"
+          name: "DevOps Administrator"
+          emailVerified: true
+          groups:
+            - "devops-team"
+          userID: "08a8684b-db88-4b73-90a9-3cd1661f5466"
+
+        # User 2: Application Developer (Developer Role - Sync, Exec, View, but No Delete)
+        - email: "developer@example.com"
+          hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+          username: "developer-sso"
+          name: "Software Developer"
+          emailVerified: true
+          groups:
+            - "developers"
+          userID: "08a8684b-db88-4b73-90a9-3cd1661f5467"
+
+        # User 3: Security & Compliance Auditor (Read-Only across all apps & clusters)
+        - email: "auditor@example.com"
+          hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+          username: "auditor-sso"
+          name: "Security Auditor"
+          emailVerified: true
+          groups:
+            - "auditors"
+          userID: "08a8684b-db88-4b73-90a9-3cd1661f5468"
+
+  # --- argocd-rbac-cm: Role-Based Access Control mapped to SSO Groups ---
+  rbac:
+    policy.default: role:readonly
+    scopes: '[groups, email]'
+    policy.csv: |
+      # -----------------------------------------------------------------
+      # 1. Custom Role Definitions
+      # -----------------------------------------------------------------
+      # Developer Role: Full sync and view permissions, but cannot delete or modify cluster/repos
+      p, role:developer, applications, get, */*, allow
+      p, role:developer, applications, sync, */*, allow
+      p, role:developer, applications, action/*, */*, allow
+      p, role:developer, logs, get, */*, allow
+      p, role:developer, exec, create, */*, allow
+
+      # Read-Only Auditor Role
+      p, role:auditor, applications, get, */*, allow
+      p, role:auditor, logs, get, */*, allow
+      p, role:auditor, clusters, get, *, allow
+      p, role:auditor, repositories, get, *, allow
+
+      # -----------------------------------------------------------------
+      # 2. Group Role Bindings (Mapping Dex Groups to Roles)
+      # -----------------------------------------------------------------
+      g, devops-team, role:admin
+      g, developers, role:developer
+      g, auditors, role:auditor
+
+      # Also map the mockCallback user kilgore@kilgore.trout to admin
+      g, kilgore@kilgore.trout, role:admin
